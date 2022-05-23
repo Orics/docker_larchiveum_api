@@ -1,0 +1,51 @@
+version: '3.8'
+
+x-common-variables: &common-variables
+  MYSQL_DATABASE: larchiveum
+  MYSQL_USER: larchiveum
+  MYSQL_PASSWORD: '123456'
+  MYSQL_HOST: localhost
+  MYSQL_PORT: '3306'
+
+services:
+  mysqldb:
+    image: orics/larchiveum_mysql:v1
+    restart: always
+    expose: 
+      - "3306"
+    volumes:
+      - "./setup.sql:/docker-entrypoint-initdb.d/setup.sql"
+    environment:
+      <<: *common-variables
+      MYSQL_ROOT_PASSWORD: '123456'
+      MYSQL_ROOT_HOST: '%'
+
+  nginx:
+    image: orics/larchiveum_nginx:v1
+    depends_on:
+      - api
+    restart: always
+    ports: 
+      - "80:80"
+      - "443:443"
+
+  api:
+    image: orics/larchiveum_api:v1
+    expose: 
+      - "3000"
+    restart: always
+    depends_on:
+      - mysqldb
+    environment:
+      <<: *common-variables
+      MYSQL_HOST: mysqldb
+
+  adminer:
+      image: orics/larchiveum_adminer:v1
+      restart: always
+      ports:
+        - 8000:8080
+      depends_on:
+        - mysqldb
+      environment:
+        ADMINER_DEFAULT_SERVER: mysqldb
